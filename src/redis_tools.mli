@@ -3,14 +3,11 @@ exception Disconnected_client
 
 module Redis = Redis_protocol.Redis
 
-(** Split a command into a tuple containing (name, arguments) *)
-val split_command : Redis.t -> string * Redis.t array
-
 module Client : sig
 
     (** Clients are used for both incoming and outgoing connections *)
     type t = {
-        config: Conduit_lwt_unix.client;
+        config: Conduit_lwt_unix.client option;
         ctx: Conduit_lwt_unix.ctx;
         mutable sock :
             (Conduit_lwt_unix.flow *
@@ -45,3 +42,44 @@ module Client : sig
     val close : t -> unit Lwt.t
 
 end
+
+module type EVAL = sig
+    type db
+    val auth : (db -> Redis_protocol.Redis.t array -> bool) option
+    val execute : db -> Redis_client.Client.t -> string * Redis_protocol.Redis.t array -> Redis_protocol.Redis.t option Lwt.t
+end
+
+module type SERVER = sig
+    type db
+
+    type t = {
+        port : int;
+        db : db;
+        tls_config : Conduit_lwt_unix.server_tls_config option;
+        ctx : Conduit_lwt_unix.ctx Lwt.t;
+    }
+
+    (** Create a new server *)
+    val init :
+        ?tls_config:[ `Crt_file_path of string ] *
+                    [ `Key_file_path of string ] *
+                    [ `No_password | `Password of bool -> string] -> db -> string -> int -> t
+
+    (** Run the server *)
+    val serve :
+        ?timeout:int ->
+        ?stop:(unit Conduit_lwt_unix.io) ->
+        ?on_exn:(exn -> unit) ->
+        ?unix:string ->
+        t ->
+        unit Lwt.t
+
+    (** Execute a command *)
+    val execute : db ->
+                  Redis_client.Client.t ->
+                  string * Redis_protocol.Redis.t array ->
+                  Redis_protocol.Redis.t option Lwt.t
+
+end
+
+module Make (X : EVAL) : SERVER with type db = X.db

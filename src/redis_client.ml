@@ -4,7 +4,7 @@ let (>>=) = Lwt.bind
 
 module Client = struct
     type t = {
-        config: Conduit_lwt_unix.client;
+        config: Conduit_lwt_unix.client option;
         ctx: Conduit_lwt_unix.ctx;
         mutable sock :
             (Conduit_lwt_unix.flow *
@@ -20,19 +20,20 @@ module Client = struct
             | Some tls -> `TLS tls
             | None -> `TCP (`IP (Ipaddr.of_string_exn host), `Port port)
         end in {
-            config = config;
+            config = Some config;
             ctx = ctx;
             sock = None;
         }
 
     let connect cli =
         (* If the client is already connected then return true right away *)
-        match cli.sock with
-        | Some s -> Lwt.return true
-        | None ->
-            Conduit_lwt_unix.connect ~ctx:cli.ctx cli.config >>= fun conn ->
+        match cli.sock, cli.config with
+        | Some s, _ -> Lwt.return true
+        | None, Some cfg ->
+            Conduit_lwt_unix.connect ~ctx:cli.ctx cfg >>= fun conn ->
                 cli.sock <- Some conn;
                 Lwt.return_true
+        | _, _ -> raise Disconnected_client
 
     let close cli =
         match cli.sock with
