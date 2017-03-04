@@ -10,8 +10,8 @@ module Client : sig
 
     (** Clients are used for both incoming and outgoing connections *)
     type t = {
-        mutable authenticated : bool;
-        tls_config : Conduit_lwt_unix.client_tls_config option;
+        config: Conduit_lwt_unix.client;
+        ctx: Conduit_lwt_unix.ctx;
         mutable sock :
             (Conduit_lwt_unix.flow *
              Conduit_lwt_unix.ic *
@@ -19,15 +19,17 @@ module Client : sig
     }
 
     (** Create a new t, host and port *)
-    val init : ?authenticated:bool -> string -> int -> t
+    val init :
+        ?tls_config:([`Hostname of string] * [`IP of Ipaddr.t] * [`Port of int]) ->
+        ?unix:string ->
+        ?host:string ->
+        ?port:int ->
+        ?ctx:Conduit_lwt_unix.ctx ->
+        unit -> t
+
 
     (** Connect a t *)
-    val connect :
-        ?unix:string ->
-        ?tls:bool ->
-        ?ctx:Conduit_lwt_unix.ctx ->
-        t ->
-        bool Lwt.t
+    val connect : t -> bool Lwt.t
 
     (** Receive data from a t *)
     val recv : t -> Redis.t Lwt.t
@@ -36,7 +38,8 @@ module Client : sig
     val send : t -> Redis.t -> unit Lwt.t
 
     (** Run a Redis command and return result *)
-    val run : t -> string -> string list -> Redis.t Lwt.t
+    val run : t -> string -> Redis.t list -> Redis.t Lwt.t
+    val run_string : t -> string -> string list -> Redis.t Lwt.t
 
     (** Close a t's connection *)
     val close : t -> unit Lwt.t

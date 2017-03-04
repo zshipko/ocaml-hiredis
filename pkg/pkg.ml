@@ -8,5 +8,5 @@ let () =
     Pkg.describe "redis_tools" @@ fun c ->
         Ok [
             Pkg.mllib ~api:["Redis_tools"] "src/redis_tools.mllib";
-            Pkg.bin "archive/redis-archive" ~dst:"redis-archive";
+            (*Pkg.bin "archive/redis-archive" ~dst:"redis-archive";*)
         ]

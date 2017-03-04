@@ -4,43 +4,44 @@ let (>>=) = Lwt.bind
 
 module Client = struct
     type t = {
-        mutable authenticated : bool;
-        tls_config : Conduit_lwt_unix.client_tls_config option;
+        config: Conduit_lwt_unix.client;
+        ctx: Conduit_lwt_unix.ctx;
         mutable sock :
             (Conduit_lwt_unix.flow *
              Conduit_lwt_unix.ic *
              Conduit_lwt_unix.oc) option;
     }
 
-    let init ?authenticated:(authenticated=false) host port =
-        let ip = Ipaddr.of_string_exn host in {
-        authenticated = authenticated;
-        tls_config =
-            Some (`Hostname host, `IP ip, `Port port);
-        sock = None;
-    }
+    let init ?tls_config ?unix ?host:(host="127.0.0.1") ?port:(port=6379) ?ctx:(ctx=Conduit_lwt_unix.default_ctx) () =
+        let config = match unix with
+        | Some s -> (`Unix_domain_socket (`File s))
+        | None -> begin
+            match tls_config with
+            | Some tls -> `TLS tls
+            | None -> `TCP (`IP (Ipaddr.of_string_exn host), `Port port)
+        end in {
+            config = config;
+            ctx = ctx;
+            sock = None;
+        }
 
-    let connect ?unix ?tls:(tls=false) ?ctx:(ctx=Conduit_lwt_unix.default_ctx) cli =
-        (* If we're already connected then return true right away *)
+    let connect cli =
+        (* If the client is already connected then return true right away *)
         match cli.sock with
         | Some s -> Lwt.return true
         | None ->
-            (* If no address is given it is most likely a client connected to a server *)
-            let addr = match cli.tls_config with
-                | Some x -> x | None -> failwith "No address provided" in
-
-            (* Unix or tcp? *)
-            begin match unix with
-            | Some s ->
-                Conduit_lwt_unix.connect ~ctx
-                    (`Unix_domain_socket (`File s))
-            | None ->
-                let _, ip, port = addr in
-                Conduit_lwt_unix.connect ~ctx
-                    (if tls then `TLS addr else `TCP (ip, port)) end
-            >>= fun conn ->
+            Conduit_lwt_unix.connect ~ctx:cli.ctx cli.config >>= fun conn ->
                 cli.sock <- Some conn;
-                Lwt.return true
+                Lwt.return_true
+
+    let close cli =
+        match cli.sock with
+        | Some (flow, ic, oc) ->
+            Lwt.catch (fun () -> Lwt_io.close ic) (fun _ -> Lwt.return_unit) >>= fun _ ->
+            Lwt.catch (fun () -> Lwt_io.close oc) (fun _ -> Lwt.return_unit) >>= fun _ ->
+                cli.sock <- None;
+                Lwt.return_unit
+        | None -> Lwt.return_unit
 
     let rec read_all ic =
         Lwt_io.read ~count:(Lwt_io.buffered ic) ic >>= fun s ->
@@ -52,29 +53,29 @@ module Client = struct
     let recv cli =
         match cli.sock with
         | Some (flow, ic, oc) ->
-            read_all ic >>= fun s ->
-            Lwt.return (Redis_protocol.Redis.Resp.decode_exn s)
+            Lwt.catch (fun () ->
+                read_all ic >>= fun s ->
+                Lwt.return (Redis_protocol.Redis.Resp.decode_exn s))
+            (fun exc -> close cli >>= fun _ -> raise exc)
         | _ -> raise Disconnected_client
 
     let send cli data =
         match cli.sock with
         | Some (flow, ic, oc) ->
-            Lwt_io.write oc (Redis_protocol.Redis.Resp.encode_exn data) >>= fun _ ->
-            Lwt_io.flush oc
+            Lwt.catch (fun () ->
+                Lwt_io.write oc (Redis_protocol.Redis.Resp.encode_exn data) >>= fun _ ->
+                Lwt_io.flush oc)
+            (fun exc -> close cli >>= fun _ -> raise exc)
         | _ -> raise Disconnected_client
 
-    let run cli command args =
+    let run_string cli command args =
         connect cli >>= fun _ ->
         send cli (Redis_protocol.Redis.Redis_command.build ~command args) >>= fun _ ->
         recv cli
 
-    let close cli =
-        match cli.sock with
-        | Some (flow, ic, oc) ->
-            Lwt.catch (fun () -> Lwt_io.close ic) (fun _ -> Lwt.return_unit) >>= fun _ ->
-            Lwt.catch (fun () -> Lwt_io.close oc) (fun _ -> Lwt.return_unit) >>= fun _ ->
-                cli.sock <- None;
-                Lwt.return_unit
-        | None -> Lwt.return_unit
+    let run cli command args =
+        connect cli >>= fun _ ->
+        send cli (Redis_protocol.Redis.Redis_command.build ~command (List.map Redis_protocol.Redis.Conv.string args)) >>= fun _ ->
+        recv cli
 
 end
