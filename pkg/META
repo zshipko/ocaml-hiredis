@@ -1,0 +1,9 @@
+description = "Redis tools for OCaml"
+version= "%%VERSION_NUM%%"
+
+requires = "conduit.lwt-unix astring"
+archive(byte) = "redis_tools.cma"
+archive(native) = "redis_tools.cmxa"
+plugin(byte) = "redis_tools.cma"
+plugin(native) = "redis_tools.cmxs"
+

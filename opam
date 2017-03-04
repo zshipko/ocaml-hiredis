@@ -1,0 +1,21 @@
+opam-version: "1.2"
+version: "0.1"
+maintainer: "Zach Shipko <zachshipko@gmail.com>"
+authors: ["Zach Shipko"]
+license: "ISC"
+homepage: "https://github.com/zshipko/redis-tools"
+bug-reports: "https://github.com/zshipko/redis-tools/issues"
+dev-repo: "https://github.com/zshipko/redis-tools.git"
+doc: "https://github.com/zshipko/redis-tools"
+
+depends: [
+    "ocamlfind" {build}
+    "ocamlbuild" {build}
+    "topkg" {build}
+    "conduit.lwt-unix"
+    "astring"
+]
+
+build: [[
+    "ocaml" "./pkg/pkg.ml" "build" "--pinned" "%{pinned}%"
+]]
