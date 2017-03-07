@@ -82,4 +82,4 @@ module type SERVER = sig
 
 end
 
-module Make (X : EVAL) : SERVER with type db = X.db
+module Server (X : EVAL) : SERVER with type db = X.db

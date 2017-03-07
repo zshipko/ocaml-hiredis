@@ -46,7 +46,7 @@ module type SERVER = sig
 
 end
 
-module Make (E : EVAL) = struct
+module Server (E : EVAL) = struct
     type db = E.db
 
     type t = {

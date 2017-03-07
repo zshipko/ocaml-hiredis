@@ -5,8 +5,7 @@
 open Topkg
 
 let () =
-    Pkg.describe "redis_tools" @@ fun c ->
+    Pkg.describe "redis-tools" @@ fun c ->
         Ok [
-            Pkg.mllib ~api:["Redis_tools"] "src/redis_tools.mllib";
-            (*Pkg.bin "archive/redis-archive" ~dst:"redis-archive";*)
+            Pkg.mllib ~api:["Redis_tools"; "Redis_protocol"] "src/redis-tools.mllib";
         ]
