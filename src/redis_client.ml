@@ -79,4 +79,11 @@ module Client = struct
         send cli (Redis_protocol.Redis.Redis_command.build ~command (List.map Redis_protocol.Redis.Conv.string args)) >>= fun _ ->
         recv cli
 
+    let parallel clients command args =
+        Lwt_list.map_p (fun cli ->
+            run cli command) clients
+        >>= List.fold_left (fun acc -> function
+                | Array (Some arr) ->
+                    acc @ Array.to_list arr
+                | a -> acc @ [a]) []
 end

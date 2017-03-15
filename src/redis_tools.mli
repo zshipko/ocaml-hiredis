@@ -37,6 +37,7 @@ module Client : sig
     (** Run a Redis command and return result *)
     val run : t -> string -> Redis.t list -> Redis.t Lwt.t
     val run_string : t -> string -> string list -> Redis.t Lwt.t
+    val parallel : t list -> string -> string list -> Redis.t list Lwt.t
 
     (** Close a t's connection *)
     val close : t -> unit Lwt.t
