@@ -20,7 +20,7 @@ module type SERVER = sig
     type db
 
     type t = {
-        port : int;
+        server_config : Conduit_lwt_unix.server;
         db : db;
         tls_config : Conduit_lwt_unix.server_tls_config option;
         ctx : Conduit_lwt_unix.ctx Lwt.t;
@@ -29,13 +29,12 @@ module type SERVER = sig
     val init :
         ?tls_config:[ `Crt_file_path of string ] *
                     [ `Key_file_path of string ] *
-                    [ `No_password | `Password of bool -> string] -> db -> string -> int -> t
+                    [ `No_password | `Password of bool -> string] ->
+        ?unix:string -> ?host:string -> ?port:int -> db -> t
 
     val serve :
         ?timeout:int ->
         ?stop:(unit Conduit_lwt_unix.io) ->
-        ?on_exn:(exn -> unit) ->
-        ?unix:string ->
         t ->
         unit Lwt.t
 
@@ -50,14 +49,16 @@ module Server (E : EVAL) = struct
     type db = E.db
 
     type t = {
-        port : int;
+        server_config : Conduit_lwt_unix.server;
         db : E.db;
         tls_config : Conduit_lwt_unix.server_tls_config option;
         ctx : Conduit_lwt_unix.ctx Lwt.t;
     }
 
-    let init ?tls_config db host port = {
-        port = port;
+    let init ?tls_config ?unix ?host:(host="127.0.0.1") ?port:(port=6379) db = {
+        server_config = (match unix with
+        | Some s -> `Unix_domain_socket (`File s)
+        | None -> `TCP (`Port port));
         db = db;
         tls_config = (match tls_config with
         | Some (a, b, c) -> Some (a, b, c, `Port port)
@@ -94,23 +95,21 @@ module Server (E : EVAL) = struct
             in check_auth ()
         in aux
 
-    let _serve ?timeout ?stop ?on_exn ?unix srv handler =
+    let _serve ?timeout ?stop srv handler =
         let mode = match srv.tls_config with
         | Some cfg -> `TLS cfg
         | None ->
-            begin match unix with
-            | Some u -> `Unix_domain_socket (`File u)
-            | None -> `TCP (`Port srv.port) end in
+            srv.server_config in
         srv.ctx >>= fun ctx ->
-            Conduit_lwt_unix.serve ~backlog: 128
-                ?timeout ?stop ?on_exn ~ctx ~mode
+            Conduit_lwt_unix.serve
+                ?timeout ?stop ~ctx ~mode
                 (wrap_handler srv handler)
 
-    let serve ?timeout ?stop ?on_exn ?unix srv =
+    let serve ?timeout ?stop srv =
         let buffer = ref [] in
         let in_multi = ref false in
         _serve
-        ?timeout ?stop ~on_exn:(fun _ -> ()) ?unix srv
+        ?timeout ?stop srv
         (fun cli ->
             let rec aux cli =
                 Lwt.catch (fun () ->

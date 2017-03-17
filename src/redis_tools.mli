@@ -37,7 +37,7 @@ module Client : sig
     (** Run a Redis command and return result *)
     val run : t -> string -> Redis.t list -> Redis.t Lwt.t
     val run_string : t -> string -> string list -> Redis.t Lwt.t
-    val parallel : t list -> string -> string list -> Redis.t list Lwt.t
+    val parallel : t list -> string -> Redis.t list -> Redis.t list Lwt.t
 
     (** Close a t's connection *)
     val close : t -> unit Lwt.t
@@ -54,7 +54,7 @@ module type SERVER = sig
     type db
 
     type t = {
-        port : int;
+        server_config : Conduit_lwt_unix.server;
         db : db;
         tls_config : Conduit_lwt_unix.server_tls_config option;
         ctx : Conduit_lwt_unix.ctx Lwt.t;
@@ -64,14 +64,13 @@ module type SERVER = sig
     val init :
         ?tls_config:[ `Crt_file_path of string ] *
                     [ `Key_file_path of string ] *
-                    [ `No_password | `Password of bool -> string] -> db -> string -> int -> t
+                    [ `No_password | `Password of bool -> string] ->
+        ?unix:string -> ?host:string -> ?port:int -> db -> t
 
     (** Run the server *)
     val serve :
         ?timeout:int ->
         ?stop:(unit Conduit_lwt_unix.io) ->
-        ?on_exn:(exn -> unit) ->
-        ?unix:string ->
         t ->
         unit Lwt.t
 

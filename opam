@@ -12,7 +12,8 @@ depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "conduit.lwt-unix"
+    "lwt"
+    "conduit"
     "astring"
 ]
 

@@ -1,6 +1,6 @@
-exception Disconnected_client
+open Lwt.Infix
 
-let (>>=) = Lwt.bind
+exception Disconnected_client
 
 module Client = struct
     type t = {
@@ -81,9 +81,9 @@ module Client = struct
 
     let parallel clients command args =
         Lwt_list.map_p (fun cli ->
-            run cli command) clients
-        >>= List.fold_left (fun acc -> function
-                | Array (Some arr) ->
+            run cli command args) clients
+        >|= List.fold_left (fun acc -> function
+                | Redis_protocol.Redis.Array (Some arr) ->
                     acc @ Array.to_list arr
                 | a -> acc @ [a]) []
 end
