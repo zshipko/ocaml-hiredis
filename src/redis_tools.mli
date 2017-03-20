@@ -7,22 +7,24 @@ module Client : sig
 
     (** Clients are used for both incoming and outgoing connections *)
     type t = {
-        config: Conduit_lwt_unix.client option;
-        ctx: Conduit_lwt_unix.ctx;
-        mutable c :
+        c_ctx: Conduit_lwt_unix.ctx;
+        c_mode: Conduit_lwt_unix.client option;
+        mutable c_conn :
              (Conduit_lwt_unix.flow *
               Conduit_lwt_unix.ic *
               Conduit_lwt_unix.oc) option;
     }
 
-    (** Create a new t, host and port *)
-    val init :
+    val default_addr : Conduit_lwt_unix.client
+
+    (** Create a new t, given host and port *)
+    val create :
         ?ctx:Conduit_lwt_unix.ctx ->
-        ?config:Conduit_lwt_unix.client ->
-        unit -> t
+        ?port:int ->
+        string -> t
 
     (** Connect a t *)
-    val connect : t -> bool Lwt.t
+    val connect : t -> unit Lwt.t
 
     (** Receive data from a t *)
     val recv : t -> Redis.t Lwt.t
@@ -40,35 +42,21 @@ module Client : sig
 
 end
 
-module type EVAL = sig
-    type db
-    val auth : (db -> Redis_protocol.Redis.t array -> bool) option
-    val execute : db -> Redis_client.Client.t -> string * Redis_protocol.Redis.t array -> Redis_protocol.Redis.t option Lwt.t
-end
-
-module type SERVER = sig
-    type db
-
+module Server : sig
     type t = {
-        config : Conduit_lwt_unix.server;
-        db : db;
-        ctx : Conduit_lwt_unix.ctx Lwt.t;
+        s_ctx : Conduit_lwt_unix.ctx;
+        s_mode : Conduit_lwt_unix.server;
     }
 
-    val init : ?host:string -> ?config:Conduit_lwt_unix.server -> db -> t
+    val create : ?ssl:Conduit_lwt_unix.tls_server_key -> ?port:int -> string -> t Lwt.t
 
-    val serve :
+    val run :
+        ?backlog:int ->
         ?timeout:int ->
-        ?stop:(unit Conduit_lwt_unix.io) ->
+        ?stop:(unit Lwt.t) ->
         ?on_exn:(exn -> unit) ->
         t ->
+        (Client.t -> unit Lwt.t) ->
         unit Lwt.t
-
-    val execute : db ->
-                  Redis_client.Client.t ->
-                  string * Redis_protocol.Redis.t array ->
-                  Redis_protocol.Redis.t option Lwt.t
-
 end
 
-module Server (X : EVAL) : SERVER with type db = X.db

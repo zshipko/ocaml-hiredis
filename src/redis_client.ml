@@ -1,35 +1,39 @@
 open Lwt.Infix
+open Conduit_lwt_unix
 
 exception Disconnected_client
 
+let get_mode port host =
+    match port with
+    | Some p -> `TCP (`IP (Ipaddr.of_string_exn host), `Port p)
+    | None -> `Unix_domain_socket (`File host)
+
 module Client = struct
     type t = {
-        config: Conduit_lwt_unix.client option;
-        ctx: Conduit_lwt_unix.ctx;
-        mutable c : (Conduit_lwt_unix.flow * Conduit_lwt_unix.ic * Conduit_lwt_unix.oc) option;
+        c_ctx : ctx;
+        c_mode : client option;
+        mutable c_conn : (flow * ic * oc) option;
     }
 
     let default_addr = `TCP (`IP (Ipaddr.of_string_exn "127.0.0.1"), `Port 6379)
 
-    let init ?ctx:(ctx=Conduit_lwt_unix.default_ctx) ?config:(config=default_addr) () =
+    let create ?ctx:(ctx=default_ctx) ?port host =
         {
-            config = Some config;
-            ctx = ctx;
-            c = None;
+            c_ctx = ctx;
+            c_mode = Some (get_mode port host);
+            c_conn = None;
         }
 
     let connect cli =
-        (* If the client is already connected then return true right away *)
-        match cli.c, cli.config with
-        | Some _,  _ -> Lwt.return true
-        | None, Some cfg ->
-            Conduit_lwt_unix.connect ~ctx:cli.ctx cfg >>= fun (_flow, ic, oc) ->
-                cli.c <- Some (_flow, ic, oc);
-                Lwt.return_true
-        | None, None -> raise Disconnected_client
+        match cli.c_conn, cli.c_mode with
+        | Some _, _ -> Lwt.return_unit
+        | None, Some mode ->
+            connect ~ctx:cli.c_ctx mode >|= fun c ->
+            cli.c_conn <- Some c
+        | None, None -> failwith "invalid client"
 
     let close cli =
-        match cli.c with
+        match cli.c_conn with
         | Some (_, ic, oc) ->
             Lwt.catch
                 (fun () -> Lwt_io.close ic)
@@ -37,29 +41,32 @@ module Client = struct
             Lwt.catch
                 (fun () -> Lwt_io.close oc)
                 (fun _ -> Lwt.return_unit) >>= fun _ ->
-            cli.c <- None;
+            cli.c_conn <- None;
             Lwt.return_unit
         | None -> Lwt.return_unit
 
     let rec read_all ic =
-        Lwt_io.read ~count:(Lwt_io.buffered ic) ic >>= fun s ->
-            if Lwt_io.buffered ic > 0 then
-                read_all ic >|= fun s' ->
-                s ^ s'
-            else Lwt.return s
+        Lwt_io.read ~count:1024 ic >>= fun s ->
+        if String.length s = 1024 then
+            read_all ic >|= fun s' -> s ^ s'
+        else Lwt.return s
 
     let rec recv cli =
-        match cli.c with
+        match cli.c_conn with
         | Some (_, ic, oc) ->
             read_all ic >>= fun s ->
-            Lwt.return (Redis_protocol.Redis.Resp.decode_exn s)
+            if s = "" then failwith "no input"
+            else
+            begin match Redis_protocol.Redis.Resp.decode s with
+            | Some r -> Lwt.return r
+            | None -> Lwt.return (Redis_protocol.Redis.Array (Some ([|Redis_protocol.Redis.Bulk_string (Some s)|])))
+            end
         | _ -> raise Disconnected_client
 
     let send cli data =
-        match cli.c with
+        match cli.c_conn with
         | Some (_, ic, oc) ->
             Lwt_io.write oc (Redis_protocol.Redis.Resp.encode_exn data)
-            >>= fun _ -> Lwt_io.flush oc
         | _ -> raise Disconnected_client
 
     let run_string cli command args =
