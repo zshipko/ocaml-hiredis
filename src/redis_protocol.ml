@@ -6,6 +6,8 @@ module Redis = struct
       | Bulk_string of string option
       | Array of t array option
 
+    let ok = Simple_string "OK"
+
     module Resp = struct
 
         exception Simple_string_contains_CR_or_LF
@@ -42,9 +44,9 @@ module Redis = struct
             | Bulk_string None -> add_string "$-1\r\n"
             | Array None -> add_string "*-1\r\n"
 
-    let encode_exn t = encoding_length t |> Buffer.create |> fun b -> encode_to_buffer_exn t b; Buffer.contents b
+        let encode_exn t = encoding_length t |> Buffer.create |> fun b -> encode_to_buffer_exn t b; Buffer.contents b
 
-    let encode t = try Some (encode_exn t) with Simple_string_contains_CR_or_LF -> None
+        let encode t = try Some (encode_exn t) with Simple_string_contains_CR_or_LF -> None
 
         exception Invalid_encoding
 
@@ -211,4 +213,37 @@ module Redis = struct
         let int64 s = Int64.of_string (string s)
         let float s = float_of_string (string s)
     end
+
+    let rec to_msgpack = function
+        | Bulk_string None | Array None -> Msgpck.Nil
+        | Error s -> Msgpck.Ext(0, s)
+        | Integer i -> Msgpck.Int64 (Int64.of_string i)
+        | Bulk_string (Some s) | Simple_string s ->
+            Msgpck.String s
+        | Array (Some arr) as x ->
+            begin try
+                let ht = Conv.hashtbl x  in
+                Msgpck.Map (Hashtbl.fold (fun k v acc ->
+                    (Msgpck.String k, to_msgpack v) :: acc) ht [])
+            with _ ->
+                Msgpck.List (Array.to_list arr
+                         |> List.map to_msgpack)
+            end
+
+    let rec of_msgpack = function
+        | Msgpck.Nil -> Array None
+        | Msgpck.Bool true -> Simple_string "true"
+        | Msgpck.Bool false -> Simple_string "false"
+        | Msgpck.Int i -> Integer (string_of_int i)
+        | Msgpck.Uint32 i | Msgpck.Int32 i -> Integer (Int32.to_string i)
+        | Msgpck.Uint64 i | Msgpck.Int64 i -> Integer (Int64.to_string i)
+        | Msgpck.Float f -> Simple_string (string_of_float f)
+        | Msgpck.String s | Msgpck.Bytes s -> Bulk_string (Some s)
+        | Msgpck.Ext (0, s) -> Error s
+        | Msgpck.List l -> Array (Some (Array.of_list (List.map of_msgpack l)))
+        | Msgpck.Map l ->
+            let l = List.fold_left (fun acc (k, v) ->
+                acc @ [of_msgpack k; of_msgpack v]) [] l in
+            Array (Some (Array.of_list l))
+        | _ -> raise (Invalid_argument "of_msgpack")
 end

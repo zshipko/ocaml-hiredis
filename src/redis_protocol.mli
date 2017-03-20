@@ -7,6 +7,8 @@ module Redis : sig
       | Bulk_string of string option (** Bulk (binary-safe) string if Some and null string if None *)
       | Array of t array option (** Array if Some and null array if None *)
 
+    val ok : t
+
     (** Return a string representation of the protocol message (as OCaml source) *)
     val to_string : t -> string
 
