@@ -55,11 +55,11 @@ module Client = struct
         match cli.c_conn with
         | Some (_, ic, oc) ->
             read_all ic >>= fun s ->
-            if s = "" then failwith "no input"
+            if s = "" then failwith "no data"
             else
             begin match Redis_protocol.Redis.Resp.decode s with
             | Some r -> Lwt.return r
-            | None -> Lwt.return (Redis_protocol.Redis.Array (Some ([|Redis_protocol.Redis.Bulk_string (Some s)|])))
+            | None -> read_all ic >|= fun s' -> Redis_protocol.Redis.Resp.decode_exn (s ^ s')
             end
         | _ -> raise Disconnected_client
 
@@ -67,6 +67,7 @@ module Client = struct
         match cli.c_conn with
         | Some (_, ic, oc) ->
             Lwt_io.write oc (Redis_protocol.Redis.Resp.encode_exn data)
+            >>= fun _ -> Lwt_io.flush oc
         | _ -> raise Disconnected_client
 
     let run_string cli command args =

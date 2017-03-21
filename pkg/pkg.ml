@@ -8,4 +8,5 @@ let () =
     Pkg.describe "redis-tools" @@ fun c ->
         Ok [
             Pkg.mllib ~api:["Redis_tools"; "Redis_protocol"] "src/redis-tools.mllib";
+            Pkg.bin "proxy/redis-proxy" ~dst:"redis-proxy";
         ]

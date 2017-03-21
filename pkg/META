@@ -1,7 +1,7 @@
 description = "Redis tools for OCaml"
 version= "%%VERSION_NUM%%"
 
-requires = "msgpck lwt conduit.lwt-unix astring"
+requires = "cmdliner msgpck lwt conduit.lwt-unix astring"
 archive(byte) = "redis-tools.cma"
 archive(native) = "redis-tools.cmxa"
 plugin(byte) = "redis-tools.cma"
