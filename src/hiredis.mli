@@ -36,7 +36,8 @@ end
 module Client : sig
     type t
 
-    val connect : ?nonblock:bool -> ?fd:Unix.file_descr -> ?port:int -> string -> t
+    val connect : ?nonblock:bool -> ?port:int -> string -> t
+    val of_fd : Unix.file_descr -> t
     val set_timeout : t -> int -> int -> status
     val append_command : t -> string array -> status
     val append_formatted : t -> string -> status

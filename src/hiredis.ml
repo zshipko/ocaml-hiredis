@@ -78,29 +78,26 @@ end
 module Client = struct
     type t = {
         c_handle : C.context;
-        c_borrowed : bool;
     }
 
     let set_timeout ctx s us =
         status_of_int (C.redis_context_set_timeout ctx.c_handle s us)
 
-    let connect ?nonblock:(nonblock=false) ?fd ?port host =
-        let ctx = match fd with
-        | Some fd' -> {
-            c_handle = C.redis_context_of_fd fd';
-            c_borrowed = true;
-        }
-        | None ->
-            {
+    let of_fd fd =
+        let ctx = {
+            c_handle = C.redis_context_of_fd fd;
+        } in
+        Gc.finalise (fun x -> C.redis_context_free_keep_fd x.c_handle) ctx; ctx
+
+    let connect ?nonblock:(nonblock=false) ?port host =
+        let ctx = {
                 c_handle = begin match port with
                     | Some port' -> C.redis_context_connect host port' nonblock
                     | None -> C.redis_context_connect_unix host nonblock
                     end;
-                c_borrowed = false;
             }
         in Gc.finalise (fun x ->
-            if x.c_borrowed then C.redis_context_free_keep_fd x.c_handle
-            else C.redis_context_free x.c_handle) ctx; ctx
+            C.redis_context_free x.c_handle) ctx; ctx
 
     let append_command ctx arr =
         status_of_int (C.redis_context_append_command ctx.c_handle arr)
