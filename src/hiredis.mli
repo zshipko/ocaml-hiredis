@@ -14,20 +14,32 @@ module Value : sig
     val int : int -> t
     val array : string array -> t
     val error : string -> t
+
+    exception Invalid_value
+
+    val is_nil : t -> bool
+    val is_error : t -> bool
+    val to_string : t -> string
+    val to_int64 : t -> int64
+    val to_int : t -> int
+    val to_float : t -> float
+    val to_array : t -> t array
+    val to_list : t -> t list
+    val to_hashtbl : t -> (string, t) Hashtbl.t
 end
 
 type status =
     | OK
-    | ERR
+    | ERR of string option
 
-val status_of_int : int -> status
+val status_of_int : ?msg:(unit -> string option) -> int -> status
 val int_of_status : status -> int
 
 val command : string array -> string
+val command_v : value array -> string
 
 module Reader : sig
     type t
-
     val create : unit -> t
     val feed : t -> string -> status
     val get_reply : t -> Value.t
@@ -36,13 +48,27 @@ end
 module Client : sig
     type t
 
+    (** Returns the error string associated with a hiredis context *)
+    val error_string : t -> string option
+
+    (** Create a new context *)
     val connect : ?nonblock:bool -> ?port:int -> string -> t
-    val of_fd : Unix.file_descr -> t
+
+    (* Convert between clients and file_descrs *)
+    val of_fd : ?close_fd:bool -> Unix.file_descr -> t
+    val to_fd : t -> Unix.file_descr
     val set_timeout : t -> int -> int -> status
+    val enable_keepalive : t -> status
+
+    (* Queue commands to be executed *)
     val append_command : t -> string array -> status
+    val append_command_v : t -> value array -> status
     val append_formatted : t -> string -> status
+
+    (* Execute queued commands *)
     val get_reply : t -> Value.t
     val run : t -> string array -> Value.t
+    val run_v : t -> value array -> Value.t
 end
 
 module Pool : sig
@@ -50,4 +76,16 @@ module Pool : sig
 
     val create : ?port:int -> string -> int -> t
     val use : t -> (Client.t -> 'a Lwt.t) -> 'a Lwt.t
+end
+
+module Shell : sig
+    module Server : sig
+        type t
+        val start : ?temp_dir:string -> ?config:(string * string list) list -> int -> t
+        val stop : t -> unit
+    end
+
+    module Client : sig
+        val interactive : ?host:string -> int -> unit
+    end
 end

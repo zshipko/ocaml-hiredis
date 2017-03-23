@@ -62,85 +62,44 @@ value convert_reply(redisReply *reply, int consume){
     return dst;
 }
 
-redisReply *convert_to_reply(value v){
-    redisReply *dst = NULL;
-    if (Is_block(v)){
-        value val = Field(v, 0);
-        switch(Tag_val(v)){
-        case 0:
-            dst = createReplyObject(REDIS_REPLY_ERROR);
-            if (dst){
-                dst->len = caml_string_length(val);
-                dst->str = strndup(String_val(val), dst->len);
-            }
-            break;
-        case 1:
-            dst = createReplyObject(REDIS_REPLY_INTEGER);
-            if (dst){
-                dst->integer = Int64_val(val);
-            }
-            break;
-        case 2:
-            dst = createReplyObject(REDIS_REPLY_STRING);
-            if (dst){
-                dst->len = caml_string_length(val);
-                dst->str = strndup(String_val(val), dst->len);
-            }
-            break;
-        case 3:
-            dst = createReplyObject(REDIS_REPLY_ARRAY);
-            if (dst){
-                dst->elements = Wosize_val(val);
-                if (dst->elements > 0){
-                    dst->element = calloc(dst->elements, sizeof(redisReply));
-                }
-
-                if (dst->element){
-                    for(int i = 0; i < dst->elements; i++){
-                        dst->element[i] = convert_to_reply(Field(val, i));
-                    }
-                }
-            }
-            break;
-        case 4:
-            dst = createReplyObject(REDIS_REPLY_STATUS);
-            if (dst){
-                dst->len = caml_string_length(val);
-                dst->str = strndup(String_val(val), dst->len);
-            }
-            break;
-        default:
-            dst = createReplyObject(REDIS_REPLY_NIL);
-        }
-    } else {
-        dst = createReplyObject(REDIS_REPLY_NIL);
+value redis_context_errstr (value _ctx){
+    CAMLparam1(_ctx);
+    redisContext *ctx = (redisContext*)_ctx;
+    if (!ctx->errstr){
+        CAMLreturn(None);
     }
+    CAMLreturn (Some (caml_copy_string(ctx->errstr)));
+}
 
-    return dst;
+value redis_context_to_fd (value _ctx){
+    CAMLparam1(_ctx);
+    redisContext *ctx = (redisContext*)_ctx;
+    CAMLreturn (Val_int(ctx->fd));
 }
 
 value redis_context_of_fd (value _fd){
     int fd = Int_val(_fd);
 
     if (fd < 0){
-        caml_failwith("invalid client");
+        caml_failwith("unable to create context");
         return Val_unit;
     }
 
     redisContext *ctx = redisConnectFd(fd);
     if (!ctx){
-        caml_failwith("invalid client");
+        caml_failwith("unable to create context");
         return Val_unit;
     }
 
     return (value)ctx;
 }
 
-value redis_context_get_reply(value _reader){
-    CAMLparam1(_reader);
-    redisReply *reply;
-    if (redisGetReply((redisContext*)_reader, (void**)&reply) != REDIS_OK){
-        caml_failwith ("invalid reply");
+value redis_context_get_reply(value _ctx){
+    CAMLparam1(_ctx);
+    redisReply *reply = NULL;
+    redisContext *ctx = (redisContext*)_ctx;
+    if (redisGetReply(ctx, (void**)&reply) != REDIS_OK){
+        caml_failwith (ctx->errstr);
         CAMLreturn(Nil);
     }
 
@@ -158,7 +117,7 @@ value redis_context_connect(value host, value port, value nonblock){
     }
 
     if (context == NULL){
-        caml_failwith ("invalid context");
+        caml_failwith ("unable to create context");
         CAMLreturn(Val_unit);
     }
 
@@ -176,7 +135,7 @@ value redis_context_connect_unix(value path, value nonblock){
     }
 
     if (context == NULL){
-        caml_failwith ("invalid context");
+        caml_failwith ("unable to create context");
         CAMLreturn(Val_unit);
     }
 
@@ -280,7 +239,7 @@ value redis_context_free(value _ctx){
 value redis_reader_create(value unit){
     redisReader *reader = redisReaderCreate();
     if (!reader){
-        caml_failwith("invalid reader");
+        caml_failwith("unable to create reader");
         return Val_unit;
     }
 

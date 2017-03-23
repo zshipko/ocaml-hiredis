@@ -1,16 +1,16 @@
-# Redis_tools
+# Hiredis
 
-`Redis_tools` is an OCaml library that provides a nice interface to interact with Redis.
+`Hiredis` is a high-level binding to the `hiredis` library for OCaml.
 
 ## Dependencies
 
-- astring
+- lwt
 - conduit
 
 ## Installation
 
-    opam pin add redis_tools .
+    opam pin add hiredis .
 
 ## Documentation
 
-See `src/redis_tools.mli` and `src/redis_protocol.mli`
+See `src/hiredis.mli`
