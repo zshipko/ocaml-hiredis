@@ -30,15 +30,15 @@ let key_file =
     Arg.(value & opt string "" & info ["k"; "key"] ~doc ~docv)
 
 let main host port redis_port crt_file key_file =
+    let pool = Pool.create ~port:redis_port host 16 in
     let rec handler client =
-        let proxy = Client.create ~port:redis_port host in
-        Client.connect proxy >>= fun () ->
         Client.recv client >>= fun x ->
-        Client.send proxy x >>= fun () ->
-        Client.recv proxy >>= fun y ->
-        Client.close proxy >>= fun () ->
-        Client.send client y >>= fun () ->
-        handler client in
+        Pool.execute pool (fun proxy ->
+            Client.send proxy x >>= fun () ->
+            Client.recv proxy >>= fun y ->
+            Client.send client y >>= fun () ->
+            Client.close proxy) >>= fun () ->
+            handler client in
 
     let loop =
         Server.create ~port host >>= fun server ->

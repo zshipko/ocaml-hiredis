@@ -45,22 +45,17 @@ module Client = struct
             Lwt.return_unit
         | None -> Lwt.return_unit
 
-    let rec read_all ic =
-        Lwt_io.read ~count:1024 ic >>= fun s ->
-        if String.length s = 1024 then
-            read_all ic >|= fun s' -> s ^ s'
+    let rec read_all ?bufsz:(bufsz=2048) ic =
+        Lwt_io.read ~count:bufsz ic >>= fun s ->
+        if String.length s = bufsz then
+            read_all ~bufsz ic >|= fun s' -> s ^ s'
         else Lwt.return s
 
     let rec recv cli =
         match cli.c_conn with
         | Some (_, ic, oc) ->
-            read_all ic >>= fun s ->
-            if s = "" then failwith "no data"
-            else
-            begin match Redis_protocol.Redis.Resp.decode s with
-            | Some r -> Lwt.return r
-            | None -> read_all ic >|= fun s' -> Redis_protocol.Redis.Resp.decode_exn (s ^ s')
-            end
+            read_all ic >|= fun s ->
+            Redis_protocol.Redis.Resp.decode_exn s
         | _ -> raise Disconnected_client
 
     let send cli data =

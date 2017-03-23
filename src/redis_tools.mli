@@ -42,6 +42,18 @@ module Client : sig
 
 end
 
+module Pool : sig
+    type t = Client.t Lwt_pool.t
+
+    val create :
+        ?ctx:Conduit_lwt_unix.ctx ->
+        ?port:int ->
+        string ->
+        int -> t
+
+    val execute : t -> (Client.t -> 'a Lwt.t) -> 'a Lwt.t
+end
+
 module Server : sig
     type t = {
         s_ctx : Conduit_lwt_unix.ctx;

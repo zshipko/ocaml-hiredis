@@ -1,0 +1,7 @@
+hiredis/async.o
+hiredis/dict.o
+hiredis/hiredis.o
+hiredis/net.o
+hiredis/read.o
+hiredis/sds.o
+hiredis_stubs.o
