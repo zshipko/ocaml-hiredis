@@ -3,20 +3,17 @@ version: "0.1"
 maintainer: "Zach Shipko <zachshipko@gmail.com>"
 authors: ["Zach Shipko"]
 license: "ISC"
-homepage: "https://github.com/zshipko/redis-tools"
-bug-reports: "https://github.com/zshipko/redis-tools/issues"
-dev-repo: "https://github.com/zshipko/redis-tools.git"
-doc: "https://github.com/zshipko/redis-tools"
+homepage: "https://github.com/zshipko/ocaml-hiredis"
+bug-reports: "https://github.com/zshipko/ocaml-hiredis/issues"
+dev-repo: "https://github.com/zshipko/ocaml-hiredis.git"
+doc: "https://github.com/zshipko/ocaml-hiredis"
 
 depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "cmdliner"
-    "msgpck"
     "lwt"
-    "conduit"
-    "astring"
+    "conduit.lwt-unix"
 ]
 
 build: [[

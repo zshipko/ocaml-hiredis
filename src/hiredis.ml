@@ -1,11 +1,13 @@
+type value =
+    | Nil
+    | Error of string
+    | Integer of int64
+    | String of string
+    | Array of value array
+    | Status of string
+
 module Value = struct
-    type t =
-        | Nil
-        | Error of string
-        | Integer of int64
-        | String of string
-        | Array of t array
-        | Status of string
+    type t = value
 
     let nil = Nil
     let error s = Error s
@@ -111,4 +113,15 @@ module Client = struct
 
     let run ctx arr =
         C.redis_context_command ctx.c_handle arr
+end
+
+module Pool = struct
+    type t = Client.t Lwt_pool.t
+
+    let create ?port host n =
+        Lwt_pool.create n (fun () ->
+            Lwt.return (Client.connect ?port host))
+
+    let use pool fn =
+        Lwt_pool.use pool fn
 end

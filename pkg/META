@@ -1,9 +1,9 @@
-description = "Redis tools for OCaml"
+description = "Hiredis for OCaml"
 version= "%%VERSION_NUM%%"
 
-requires = "cmdliner msgpck lwt conduit.lwt-unix astring"
-archive(byte) = "redis-tools.cma"
-archive(native) = "redis-tools.cmxa"
-plugin(byte) = "redis-tools.cma"
-plugin(native) = "redis-tools.cmxs"
+requires = "lwt conduit.lwt-unix"
+archive(byte) = "hiredis.cma"
+archive(native) = "hiredis.cmxa"
+plugin(byte) = "hiredis.cma"
+plugin(native) = "hiredis.cmxs"
 

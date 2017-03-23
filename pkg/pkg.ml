@@ -5,7 +5,7 @@
 open Topkg
 
 let () =
-    Pkg.describe "redis-tools" @@ fun c ->
+    Pkg.describe "hiredis" @@ fun c ->
         Ok [
             Pkg.lib "src/hiredis/adapters/ae.h";
             Pkg.lib "src/hiredis/adapters/libevent.h";
@@ -26,6 +26,5 @@ let () =
             Pkg.lib "src/hiredis/hiredis.h";
             Pkg.lib "src/hiredis/win32.h";
             Pkg.clib "src/libhiredis_stubs.clib";
-            Pkg.mllib ~api:["Redis_tools"; "Redis_protocol"; "Hiredis"] "src/redis-tools.mllib";
-            Pkg.bin "proxy/redis-proxy" ~dst:"redis-proxy";
+            Pkg.mllib ~api:["Hiredis"] "src/hiredis.mllib";
         ]
