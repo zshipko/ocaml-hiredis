@@ -7,10 +7,6 @@ open Topkg
 let () =
     Pkg.describe "hiredis" @@ fun c ->
         Ok [
-            Pkg.lib "src/hiredis/adapters/ae.h";
-            Pkg.lib "src/hiredis/adapters/libevent.h";
-            Pkg.lib "src/hiredis/adapters/libev.h";
-            Pkg.lib "src/hiredis/adapters/libuv.h";
             Pkg.lib "src/hiredis/fmacros.h";
             Pkg.lib "src/hiredis/sdsalloc.h";
             Pkg.lib "src/hiredis/sds.h";

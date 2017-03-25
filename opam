@@ -12,7 +12,6 @@ depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "threads"
     "conduit.lwt-unix"
 ]
 

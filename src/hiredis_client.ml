@@ -1,16 +1,8 @@
 open Hiredis_value
 
-type status =
+type status = C.status =
     | OK
     | ERR of string option
-
-let status_of_int ?msg:(msg=(fun x -> None)) = function
-    | -1 -> ERR (msg ())
-    | _ -> OK
-
-let int_of_status = function
-    | OK -> 0
-    | ERR _ -> (-1)
 
 module Reader = struct
     type t = {
@@ -21,11 +13,8 @@ module Reader = struct
         let r = {r_handle = C.redis_reader_create ()} in
         Gc.finalise (fun x -> C.redis_reader_free x.r_handle) r; r
 
-    let feed r s =
-        status_of_int (C.redis_reader_feed r.r_handle s)
-
-    let get_reply r =
-        C.redis_reader_get_reply r.r_handle
+    let feed r s = C.redis_reader_feed r.r_handle s
+    let get_reply r = C.redis_reader_get_reply r.r_handle
 
     let rec encode_string = function
         | Nil -> "*-1\r\n"
@@ -97,35 +86,28 @@ module Client = struct
         C.redis_context_reconnect ctx.c_handle
 
     let set_timeout ctx s us =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_set_timeout ctx.c_handle s us)
+        C.redis_context_set_timeout ctx.c_handle s us
 
     let enable_keepalive ctx =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_enable_keepalive ctx.c_handle)
+        C.redis_context_enable_keepalive ctx.c_handle
 
     let append_command ctx arr =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_append_command ctx.c_handle arr)
+        C.redis_context_append_command ctx.c_handle arr
 
     let append_command_v ctx arr =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_append_command ctx.c_handle (Array.map Value.to_string arr))
+        C.redis_context_append_command ctx.c_handle (Array.map Value.to_string arr)
 
     let append_formatted ctx s =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_append_formatted ctx.c_handle s)
+        C.redis_context_append_formatted ctx.c_handle s
 
     let append_value ctx v =
         append_formatted ctx (Reader.encode_string v)
 
     let flush_buffer ctx =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_flush_buffer ctx.c_handle)
+        C.redis_context_flush_buffer ctx.c_handle
 
     let read_buffer ctx =
-        status_of_int ~msg:(fun () ->
-            error_string ctx) (C.redis_context_read_buffer ctx.c_handle)
+        C.redis_context_read_buffer ctx.c_handle
 
     let get_reply ctx =
         C.redis_context_get_reply ctx.c_handle

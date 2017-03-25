@@ -33,9 +33,6 @@ type status =
     | OK
     | ERR of string option
 
-val status_of_int : ?msg:(unit -> string option) -> int -> status
-val int_of_status : status -> int
-
 val command : string array -> string option
 val command_v : value array -> string option
 
