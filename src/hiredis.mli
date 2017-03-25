@@ -12,8 +12,9 @@ module Value : sig
     val string : string -> t
     val int64 : int64 -> t
     val int : int -> t
-    val array : string array -> t
+    val array : t array -> t
     val error : string -> t
+    val status : string -> t
 
     exception Invalid_value
 
@@ -43,6 +44,9 @@ module Reader : sig
     val create : unit -> t
     val feed : t -> string -> status
     val get_reply : t -> Value.t
+
+    val encode_string : value -> string
+    val decode_string : string -> value
 end
 
 module Client : sig
@@ -64,6 +68,11 @@ module Client : sig
     val append_command : t -> string array -> status
     val append_command_v : t -> value array -> status
     val append_formatted : t -> string -> status
+    val append_value : t -> value -> status
+
+    (* Write queued commands *)
+    val flush_buffer : t -> status
+    val read_buffer : t -> status
 
     (* Execute queued commands *)
     val get_reply : t -> Value.t
@@ -73,7 +82,6 @@ end
 
 module Pool : sig
     type t = Client.t Lwt_pool.t
-
     val create : ?port:int -> string -> int -> t
     val use : t -> (Client.t -> 'a Lwt.t) -> 'a Lwt.t
 end
@@ -88,4 +96,22 @@ module Shell : sig
     module Client : sig
         val interactive : ?host:string -> int -> unit
     end
+end
+
+module Server : sig
+    type t
+    val create :
+        ?host:string ->
+        ?tls_config:Conduit_lwt_unix.tls_server_key ->
+        Conduit_lwt_unix.server ->
+        t Lwt.t
+
+    val run :
+        ?backlog:int ->
+        ?timeout:int ->
+        ?stop:unit Lwt.t ->
+        ?on_exn:(exn -> unit) ->
+        t ->
+        (Value.t array -> Value.t option Lwt.t) ->
+        unit Lwt.t
 end

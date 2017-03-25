@@ -14,7 +14,8 @@ module Value = struct
     let int64 i = Integer i
     let int i = Integer (Int64.of_int i)
     let string s = String s
-    let array a = Array (Array.map string a)
+    let array a = Array a
+    let status s = Status s
 
     exception Invalid_value
 

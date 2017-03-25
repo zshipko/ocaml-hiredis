@@ -3,3 +3,4 @@ C
 Hiredis_value
 Hiredis_client
 Hiredis_shell
+Hiredis_server

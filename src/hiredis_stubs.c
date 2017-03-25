@@ -98,7 +98,7 @@ value redis_context_get_reply(value _ctx){
     CAMLparam1(_ctx);
     redisReply *reply = NULL;
     redisContext *ctx = (redisContext*)_ctx;
-    if (redisGetReply(ctx, (void**)&reply) != REDIS_OK){
+    if (redisGetReplyFromReader(ctx, (void**)&reply) != REDIS_OK){
         caml_failwith (ctx->errstr);
         CAMLreturn(Nil);
     }
@@ -187,13 +187,13 @@ value redis_context_append_command(value _ctx, value arr){
         lens[i] = caml_string_length(Field(arr, i));
     }
 
-    CAMLreturn (Int_val(redisAppendCommandArgv((redisContext*)_ctx, argc, argv, lens)));
+    CAMLreturn (Val_int(redisAppendCommandArgv((redisContext*)_ctx, argc, argv, lens)));
 }
 
 value redis_context_append_formatted(value _ctx, value s){
     CAMLparam2(_ctx, s);
 
-    CAMLreturn (Int_val(redisAppendFormattedCommand((redisContext*)_ctx, String_val(s), caml_string_length(s))));
+    CAMLreturn (Val_int(redisAppendFormattedCommand((redisContext*)_ctx, String_val(s), caml_string_length(s))));
 }
 
 value redis_format_command(value arr){
@@ -223,6 +223,23 @@ value redis_format_command(value arr){
     CAMLreturn(s);
 }
 
+value redis_context_flush_buffer (value _ctx){
+    CAMLparam1(_ctx);
+    int done = 0;
+
+    do {
+        if (redisBufferWrite((redisContext*)_ctx, &done) == REDIS_ERR){
+            CAMLreturn(Val_int(REDIS_ERR));
+        }
+    } while (!done);
+
+    CAMLreturn (Val_int(REDIS_OK));
+}
+
+value redis_context_read_buffer (value _ctx){
+    CAMLparam1(_ctx);
+    CAMLreturn(Val_int(redisBufferRead((redisContext*)_ctx)));
+}
 
 value redis_context_free_keep_fd(value _ctx){
     CAMLparam1(_ctx);
@@ -261,7 +278,6 @@ value redis_reader_get_reply(value _reader){
     CAMLparam1(_reader);
     redisReply *reply = NULL;
     if (redisReaderGetReply((redisReader*)_reader, (void**)&reply) != REDIS_OK){
-        caml_failwith ("invalid reply");
         CAMLreturn(Nil);
     }
 

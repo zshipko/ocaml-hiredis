@@ -6,7 +6,7 @@ let () = dispatch begin function
 
 
     flag ["use_hiredis_stubs"] &
-        S[A"-I"; A"lib"];
+        S[A"-I"; A"src"];
 
     flag ["ocaml"; "link"; "byte"; "library"; "use_hiredis_stubs"] &
         S[A"-dllib"; A"-lhiredis_stubs"; A"-cclib"; A"-lpthread"];
@@ -15,7 +15,7 @@ let () = dispatch begin function
         S[ A"-cclib"; A"-lhiredis_stubs"; A"-cclib"; A"-lpthread"];
 
     flag ["link"; "ocaml"; "link_hiredis_stubs"] &
-        S[A"-cclib"; A"lib/libhiredis_stubs.a"; A"-cclib"; A"-lpthread"];
+        S[A"-cclib"; A"-lhiredis_stubs"; A"-cclib"; A"-lpthread"];
 
     | _ -> ()
 end

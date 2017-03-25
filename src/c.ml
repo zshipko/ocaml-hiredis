@@ -21,6 +21,8 @@ external redis_context_command : context -> string array -> t = "redis_context_c
 external redis_context_append_command : context -> string array -> int = "redis_context_append_command"
 external redis_context_append_formatted : context -> string -> int = "redis_context_append_formatted"
 external redis_context_free : context -> unit = "redis_context_free"
+external redis_context_flush_buffer : context -> int = "redis_context_flush_buffer"
+external redis_context_read_buffer : context -> int = "redis_context_read_buffer"
 external redis_context_get_reply : context -> t = "redis_context_get_reply"
 
 external redis_format_command : string array -> string = "redis_format_command"

@@ -26,6 +26,34 @@ module Reader = struct
 
     let get_reply r =
         C.redis_reader_get_reply r.r_handle
+
+    let rec encode_string = function
+        | Nil -> "*-1\r\n"
+        | Error e ->
+            if String.contains e '\n'
+            then raise Value.Invalid_value
+            else Printf.sprintf "-%s\r\n" e
+        | Integer i ->
+            Printf.sprintf ":%Ld\r\n" i
+        | String s ->
+            Printf.sprintf "$%d\r\n%s\r\n" (String.length s) s
+        | Array arr ->
+            let l = Array.map encode_string arr
+                |> Array.to_list
+                |> String.concat "" in
+            Printf.sprintf "*%d\r\n%s" (Array.length arr) l
+        | Status s ->
+            if String.contains s '\n'
+            then raise Value.Invalid_value
+            else Printf.sprintf "+%s\r\n" s
+
+    let decode_string s =
+        let r = create () in
+        match feed r s with
+        | OK -> get_reply r
+        | ERR s -> failwith (match s with
+            | Some s -> s
+            | None -> "invalid encoding")
 end
 
 module Client = struct
@@ -87,6 +115,17 @@ module Client = struct
     let append_formatted ctx s =
         status_of_int ~msg:(fun () ->
             error_string ctx) (C.redis_context_append_formatted ctx.c_handle s)
+
+    let append_value ctx v =
+        append_formatted ctx (Reader.encode_string v)
+
+    let flush_buffer ctx =
+        status_of_int ~msg:(fun () ->
+            error_string ctx) (C.redis_context_flush_buffer ctx.c_handle)
+
+    let read_buffer ctx =
+        status_of_int ~msg:(fun () ->
+            error_string ctx) (C.redis_context_read_buffer ctx.c_handle)
 
     let get_reply ctx =
         C.redis_context_get_reply ctx.c_handle

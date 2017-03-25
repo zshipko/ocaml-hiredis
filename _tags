@@ -1,9 +1,8 @@
 true: bin_annot, safe_string, package(conduit.lwt-unix)
 
 "src": include
-"test": include
 
-<src/*.{cma,cmxa,cmxs}>: use_hiredis_stubs
+<src/*.{cma,cmxa,cmxs}>: link_hiredis_stubs
 <src/*.cma>: custom
 
 <test/*.native>: link_hiredis_stubs
