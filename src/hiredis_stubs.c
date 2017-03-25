@@ -7,11 +7,12 @@
 #include <caml/fail.h>
 #include <caml/callback.h>
 #include <caml/memory.h>
+#include <caml/threads.h>
 #include <stdio.h>
 #include <string.h>
 
 value Some(value x) {
-    value dst = caml_alloc(1, 0);
+    value dst = caml_alloc_small(1, 0);
     Store_field(dst, 0, x);
     return dst;
 }
@@ -27,25 +28,25 @@ value convert_reply(redisReply *reply, int consume){
     }
 
     if (reply->type == REDIS_REPLY_ERROR){
-        dst = caml_alloc(1, 0);
+        dst = caml_alloc_small(1, 0);
         value s = caml_alloc_string(reply->len);
         memcpy(String_val(s), reply->str, reply->len);
         Store_field(dst, 0, s);
     } else if (reply->type == REDIS_REPLY_STATUS){
-        dst = caml_alloc(1, 4);
+        dst = caml_alloc_small(1, 4);
         value s = caml_alloc_string(reply->len);
         memcpy(String_val(s), reply->str, reply->len);
         Store_field(dst, 0, s);
     } else if (reply->type == REDIS_REPLY_STRING){
-        dst = caml_alloc(1, 2);
+        dst = caml_alloc_small(1, 2);
         value s = caml_alloc_string(reply->len);
         memcpy(String_val(s), reply->str, reply->len);
         Store_field(dst, 0, s);
     } else if (reply->type == REDIS_REPLY_INTEGER){
-        dst = caml_alloc(1, 1);
+        dst = caml_alloc_small(1, 1);
         Store_field(dst, 0, caml_copy_int64(reply->integer));
     } else if (reply->type == REDIS_REPLY_ARRAY){
-        dst = caml_alloc(1, 3);
+        dst = caml_alloc_small(1, 3);
         value s = caml_alloc(reply->elements, 0);
         for(size_t i = 0; i < reply->elements; i++){
             Store_field(s, i, convert_reply(reply->element[i], 0));
@@ -85,7 +86,9 @@ value redis_context_of_fd (value _fd){
         return Val_unit;
     }
 
+    caml_release_runtime_system();
     redisContext *ctx = redisConnectFd(fd);
+    caml_acquire_runtime_system();
     if (!ctx){
         caml_failwith("unable to create context");
         return Val_unit;
@@ -98,12 +101,15 @@ value redis_context_get_reply(value _ctx){
     CAMLparam1(_ctx);
     redisReply *reply = NULL;
     redisContext *ctx = (redisContext*)_ctx;
-    if (redisGetReplyFromReader(ctx, (void**)&reply) != REDIS_OK){
-        caml_failwith (ctx->errstr);
-        CAMLreturn(Nil);
+
+    caml_release_runtime_system();
+    int res = redisGetReplyFromReader(ctx, (void**)&reply);
+    caml_acquire_runtime_system();
+    if (res != REDIS_OK){
+        CAMLreturn(None);
     }
 
-    CAMLreturn(convert_reply(reply, 1));
+    CAMLreturn(Some(convert_reply(reply, 1)));
 }
 
 value redis_context_connect(value host, value port, value nonblock){
@@ -212,15 +218,14 @@ value redis_format_command(value arr){
     int len = redisFormatCommandArgv(&dst, argc, argv, lens);
     if (len < 0){
         redisFreeCommand(dst);
-        caml_failwith("invalid command");
-        CAMLreturn(Val_unit);
+        CAMLreturn(None);
     }
 
     value s = caml_alloc_string(len);
     memcpy(String_val(s), dst, len);
     redisFreeCommand(dst);
 
-    CAMLreturn(s);
+    CAMLreturn(Some(s));
 }
 
 value redis_context_flush_buffer (value _ctx){
@@ -278,10 +283,10 @@ value redis_reader_get_reply(value _reader){
     CAMLparam1(_reader);
     redisReply *reply = NULL;
     if (redisReaderGetReply((redisReader*)_reader, (void**)&reply) != REDIS_OK){
-        CAMLreturn(Nil);
+        CAMLreturn(None);
     }
 
-    CAMLreturn(convert_reply(reply, 1));
+    CAMLreturn(Some(convert_reply(reply, 1)));
 }
 
 

@@ -36,17 +36,17 @@ type status =
 val status_of_int : ?msg:(unit -> string option) -> int -> status
 val int_of_status : status -> int
 
-val command : string array -> string
-val command_v : value array -> string
+val command : string array -> string option
+val command_v : value array -> string option
 
 module Reader : sig
     type t
     val create : unit -> t
     val feed : t -> string -> status
-    val get_reply : t -> Value.t
+    val get_reply : t -> Value.t option
 
     val encode_string : value -> string
-    val decode_string : string -> value
+    val decode_string : string -> value option
 end
 
 module Client : sig
@@ -75,9 +75,9 @@ module Client : sig
     val read_buffer : t -> status
 
     (* Execute queued commands *)
-    val get_reply : t -> Value.t
-    val run : t -> string array -> Value.t
-    val run_v : t -> value array -> Value.t
+    val get_reply : t -> value option
+    val run : t -> string array -> value
+    val run_v : t -> value array -> value
 end
 
 module Pool : sig

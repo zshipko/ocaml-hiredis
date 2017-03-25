@@ -23,13 +23,13 @@ external redis_context_append_formatted : context -> string -> int = "redis_cont
 external redis_context_free : context -> unit = "redis_context_free"
 external redis_context_flush_buffer : context -> int = "redis_context_flush_buffer"
 external redis_context_read_buffer : context -> int = "redis_context_read_buffer"
-external redis_context_get_reply : context -> t = "redis_context_get_reply"
+external redis_context_get_reply : context -> t option = "redis_context_get_reply"
 
-external redis_format_command : string array -> string = "redis_format_command"
+external redis_format_command : string array -> string option = "redis_format_command"
 
 type reader
 external redis_reader_create : unit -> reader = "redis_reader_create"
 external redis_reader_free : reader -> unit = "redis_reader_free"
 external redis_reader_feed : reader -> string -> int = "redis_reader_feed"
-external redis_reader_get_reply : reader -> t = "redis_reader_get_reply"
+external redis_reader_get_reply : reader -> t option = "redis_reader_get_reply"
 

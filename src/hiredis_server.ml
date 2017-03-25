@@ -22,19 +22,19 @@ module Server = struct
 
     let buffer_size = 2048
 
-    let rec read client =
-        Lwt_io.read ~count:buffer_size client >>= fun s ->
+    let rec read ic =
+        Lwt_io.read ~count:buffer_size ic >>= fun s ->
         if String.length s = buffer_size then
-            read client >|= fun s' -> s ^ s'
+            read ic >|= fun s' -> s ^ s'
         else Lwt.return s
 
     let rec aux callback ic oc r =
         read ic >>= fun s ->
-        let () = if String.length s > 0 then ignore (Reader.feed r s) in
+        let () = if String.length s > 0
+                 then ignore (Reader.feed r s) in
         match Reader.get_reply r with
-        | Nil ->
-            Lwt.return_unit
-        | Array a ->
+        | None -> Lwt.return_unit
+        | Some (Array a) ->
             (callback a >>= function
             | Some res ->
                 Lwt_io.write oc (Reader.encode_string res) >>= fun _ ->
@@ -45,13 +45,14 @@ module Server = struct
         | _ ->
             Lwt_io.write oc "-ERR INVALID COMMAND" >>= fun _ ->
             Lwt_io.flush oc >>= fun () ->
-            aux callback ic oc r
+            Lwt.return_unit
 
     let rec handle callback flow ic oc =
         let r = Reader.create () in
         aux callback ic oc r
 
     let rec run ?backlog ?timeout ?stop ?on_exn srv callback =
-        Conduit_lwt_unix.serve ?backlog ?timeout ?stop ?on_exn ~ctx:srv.s_ctx ~mode:srv.s_mode (handle callback)
+        Conduit_lwt_unix.serve ?backlog ?timeout ?stop ?on_exn
+            ~ctx:srv.s_ctx ~mode:srv.s_mode (handle callback)
 
 end
