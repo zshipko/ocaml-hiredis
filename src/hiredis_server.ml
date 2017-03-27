@@ -32,24 +32,24 @@ module Server = struct
         read ic >>= fun s ->
         let () = if String.length s > 0
                  then ignore (Reader.feed r s) in
-        match Reader.get_reply r with
-        | None -> Lwt.return_unit
-        | Some (Array a) ->
-            (callback a >>= function
-            | Some res ->
-                Lwt_io.write oc (Reader.encode_string res) >>= fun _ ->
-                Lwt_io.flush oc >>= fun () ->
-                aux callback ic oc r
-            | None ->
-                Lwt.return_unit)
-        | _ ->
-            Lwt_io.write oc "-ERR INVALID COMMAND" >>= fun _ ->
-            Lwt_io.flush oc >>= fun () ->
-            Lwt.return_unit
+            match Reader.get_reply r with
+            | None -> Lwt.return_unit
+            | Some (Array a) ->
+                (callback a >>= function
+                | Some res ->
+                    Lwt_io.write oc (Reader.encode_string res) >>= fun _ ->
+                    aux callback ic oc r
+                | None ->
+                    Lwt.return_unit)
+            | _ ->
+                Lwt_io.write oc "-ERR INVALID COMMAND" >>= fun _ ->
+                Lwt.return_unit
 
     let rec handle callback flow ic oc =
         let r = Reader.create () in
-        aux callback ic oc r
+        Lwt.catch (fun () ->
+            aux callback ic oc r)
+        (fun _ -> Lwt_unix.yield ())
 
     let rec run ?backlog ?timeout ?stop ?on_exn srv callback =
         Conduit_lwt_unix.serve ?backlog ?timeout ?stop ?on_exn
