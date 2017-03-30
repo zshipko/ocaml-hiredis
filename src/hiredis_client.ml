@@ -71,17 +71,6 @@ module Client = struct
         Gc.finalise (fun x ->
             close ~close_fd x) ctx; ctx
 
-    let connect ?nonblock:(nonblock=false) ?port host =
-        let ctx = {
-                c_handle = begin match port with
-                    | Some port' -> C.redis_context_connect host port' nonblock
-                    | None -> C.redis_context_connect_unix host nonblock
-                    end;
-                c_freed = false;
-            }
-        in Gc.finalise (fun x ->
-            close x) ctx; ctx
-
     let reconnect ctx =
         C.redis_context_reconnect ctx.c_handle
 
@@ -117,6 +106,20 @@ module Client = struct
 
     let run_v ctx arr =
         run ctx (Array.map Value.to_string arr)
+
+    let connect ?auth ?nonblock:(nonblock=false) ?port host =
+        let ctx = {
+                c_handle = begin match port with
+                    | Some port' -> C.redis_context_connect host port' nonblock
+                    | None -> C.redis_context_connect_unix host nonblock
+                    end;
+                c_freed = false;
+            }
+        in Gc.finalise (fun x ->
+            close x) ctx;
+        match auth with
+        | Some s -> ignore (run ctx [| "AUTH"; s |]); ctx
+        | None -> ctx
 
 end
 

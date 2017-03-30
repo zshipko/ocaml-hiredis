@@ -53,7 +53,7 @@ module Client : sig
     val error_string : t -> string option
 
     (** Create a new context *)
-    val connect : ?nonblock:bool -> ?port:int -> string -> t
+    val connect : ?auth:string -> ?nonblock:bool -> ?port:int -> string -> t
 
     (* Convert between clients and file_descrs *)
     val of_fd : ?close_fd:bool -> Unix.file_descr -> t
