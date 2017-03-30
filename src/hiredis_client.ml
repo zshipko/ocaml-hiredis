@@ -49,6 +49,7 @@ module Client = struct
     type t = {
         c_handle : C.context;
         mutable c_freed : bool;
+        c_scripts : (string, string) Hashtbl.t;
     }
 
     let error_string ctx =
@@ -63,10 +64,11 @@ module Client = struct
     let to_fd ctx =
         C.redis_context_to_fd ctx.c_handle
 
-    let of_fd ?close_fd:(close_fd=true) fd =
+    let of_fd ?scripts:(scripts=Hashtbl.create 16) ?close_fd:(close_fd=true) fd =
         let ctx = {
             c_handle = C.redis_context_of_fd fd;
             c_freed = false;
+            c_scripts = scripts;
         } in
         Gc.finalise (fun x ->
             close ~close_fd x) ctx; ctx
@@ -107,13 +109,14 @@ module Client = struct
     let run_v ctx arr =
         run ctx (Array.map Value.to_string arr)
 
-    let connect ?auth ?nonblock:(nonblock=false) ?port host =
+    let connect ?scripts:(scripts=Hashtbl.create 16) ?auth ?nonblock:(nonblock=false) ?port host =
         let ctx = {
                 c_handle = begin match port with
                     | Some port' -> C.redis_context_connect host port' nonblock
                     | None -> C.redis_context_connect_unix host nonblock
                     end;
                 c_freed = false;
+                c_scripts = scripts
             }
         in Gc.finalise (fun x ->
             close x) ctx;
@@ -121,6 +124,21 @@ module Client = struct
         | Some s -> ignore (run ctx [| "AUTH"; s |]); ctx
         | None -> ctx
 
+    let load_script ctx name s =
+        let hash = Value.to_string (run ctx [| "SCRIPT"; "LOAD"; s |]) in
+        Hashtbl.replace ctx.c_scripts name hash
+
+    let call_script ctx name numkeys args =
+        let hash = Hashtbl.find ctx.c_scripts name in
+        Array.of_list @@
+        (["EVALSHA"; hash; string_of_int numkeys ] @ args)
+        |> run ctx
+
+    let call_script_v ctx name numkeys args =
+        let hash = Hashtbl.find ctx.c_scripts name in
+        Array.of_list @@
+        ([String "EVALSHA"; String hash; String (string_of_int numkeys) ] @ args)
+        |> run_v ctx
 end
 
 module Pool = struct

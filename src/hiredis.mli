@@ -53,10 +53,18 @@ module Client : sig
     val error_string : t -> string option
 
     (** Create a new context *)
-    val connect : ?auth:string -> ?nonblock:bool -> ?port:int -> string -> t
+    val connect :
+        ?scripts:(string, string) Hashtbl.t ->
+        ?auth:string ->
+        ?nonblock:bool ->
+        ?port:int ->
+        string -> t
 
     (* Convert between clients and file_descrs *)
-    val of_fd : ?close_fd:bool -> Unix.file_descr -> t
+    val of_fd :
+        ?scripts:(string, string) Hashtbl.t ->
+        ?close_fd:bool ->
+        Unix.file_descr -> t
     val to_fd : t -> Unix.file_descr
     val set_timeout : t -> int -> int -> status
     val enable_keepalive : t -> status
@@ -75,6 +83,9 @@ module Client : sig
     val get_reply : t -> value option
     val run : t -> string array -> value
     val run_v : t -> value array -> value
+    val load_script : t -> string -> string -> unit
+    val call_script : t -> string -> int -> string list -> value
+    val call_script_v : t -> string -> int -> value list -> value
 end
 
 module Pool : sig
