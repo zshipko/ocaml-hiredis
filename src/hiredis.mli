@@ -108,6 +108,7 @@ end
 
 module Server : sig
     type t
+    val set_auth : string option -> unit
     val create :
         ?host:string ->
         ?tls_config:Conduit_lwt_unix.tls_server_key ->
