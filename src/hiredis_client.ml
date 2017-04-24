@@ -7,11 +7,17 @@ type status = C.status =
 module Reader = struct
     type t = {
         r_handle : C.reader;
+        mutable freed : bool;
     }
 
+    let release r =
+        if not r.freed then
+            let () = C.redis_reader_free r.r_handle in
+            r.freed <- true
+
     let create () =
-        let r = {r_handle = C.redis_reader_create ()} in
-        Gc.finalise (fun x -> C.redis_reader_free x.r_handle) r; r
+        let r = {r_handle = C.redis_reader_create (); freed = false} in
+        Gc.finalise release r; r
 
     let feed r s = C.redis_reader_feed r.r_handle s
     let get_reply r = C.redis_reader_get_reply r.r_handle

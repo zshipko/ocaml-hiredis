@@ -39,6 +39,7 @@ val command_v : value array -> string option
 module Reader : sig
     type t
     val create : unit -> t
+    val release : t -> unit
     val feed : t -> string -> status
     val get_reply : t -> Value.t option
 

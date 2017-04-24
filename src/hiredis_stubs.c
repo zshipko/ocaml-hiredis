@@ -18,8 +18,9 @@ value Some(value x) {
 }
 
 
-#define None Val_int(0)
+const value None = Val_int(0);
 #define Nil None
+#define OK None
 
 value ERR(char *s) {
     value dst = caml_alloc_small(1, 1);
@@ -27,14 +28,13 @@ value ERR(char *s) {
     return dst;
 }
 
-#define OK Val_int(0)
-
 value convert_reply(redisReply *reply, int consume){
     value dst = Val_unit;
 
     if (!reply){
         return Nil;
     }
+
 
     if (reply->type == REDIS_REPLY_ERROR){
         dst = caml_alloc_small(1, 0);
@@ -75,7 +75,7 @@ value convert_reply(redisReply *reply, int consume){
 value redis_context_errstr (value _ctx){
     CAMLparam1(_ctx);
     redisContext *ctx = (redisContext*)_ctx;
-    if (!ctx->errstr){
+    if (strlen(ctx->errstr) == 0){
         CAMLreturn(None);
     }
     CAMLreturn (Some (caml_copy_string(ctx->errstr)));
@@ -115,6 +115,9 @@ value redis_context_get_reply(value _ctx){
     int res = redisGetReplyFromReader(ctx, (void**)&reply);
     caml_acquire_runtime_system();
     if (res != REDIS_OK){
+        if (reply){
+            freeReplyObject(reply);
+        }
         CAMLreturn(None);
     }
 
@@ -270,10 +273,8 @@ value redis_context_flush_buffer (value _ctx){
     int done = 0;
     redisContext *ctx = (redisContext*)_ctx;
 
-    caml_release_runtime_system();
     do {
         if (redisBufferWrite(ctx, &done) != REDIS_OK){
-            caml_release_runtime_system();
             CAMLreturn(ERR(ctx->errstr));
         }
     } while (!done);
@@ -338,10 +339,13 @@ value redis_reader_get_reply(value _reader){
 
     caml_release_runtime_system();
     if (redisReaderGetReply(reader, (void**)&reply) != REDIS_OK){
+        if (reply){
+            freeReplyObject(reply);
+        }
         caml_acquire_runtime_system();
         CAMLreturn(None);
     }
-    caml_release_runtime_system();
+    caml_acquire_runtime_system();
 
     CAMLreturn(Some(convert_reply(reply, 1)));
 }
