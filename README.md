@@ -1,11 +1,11 @@
 # Hiredis
 
-`Hiredis` is a high-level binding to the `hiredis` library for OCaml.
+Hiredis bindings for OCaml.
 
 ## Dependencies
 
-- lwt
-- conduit
+- Lwt
+- Conduit
 
 ## Installation
 
