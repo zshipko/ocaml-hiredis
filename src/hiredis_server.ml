@@ -36,7 +36,9 @@ module Server = struct
         let () = if String.length s > 0
                  then ignore (Reader.feed r s) in
             match Reader.get_reply r with
-            | None -> Lwt.return_unit
+            | None ->
+                Lwt_io.write oc (Reader.encode_string (Error "NOCOMMAND Invalid Command")) >>= fun _ ->
+                Lwt.return_unit
             | Some (Array a) ->
                 if authenticated then
                     (callback a >>= function
