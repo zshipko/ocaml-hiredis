@@ -17,7 +17,6 @@ value Some(value x) {
     return dst;
 }
 
-
 const value None = Val_int(0);
 #define Nil None
 #define OK None
@@ -34,7 +33,6 @@ value convert_reply(redisReply *reply, int consume){
     if (!reply){
         return Nil;
     }
-
 
     if (reply->type == REDIS_REPLY_ERROR){
         dst = caml_alloc_small(1, 0);
@@ -261,7 +259,9 @@ value redis_format_command(value arr){
         CAMLreturn(None);
     }
 
-    value s = caml_alloc_string(len);
+    CAMLlocal1(s);
+
+    s = caml_alloc_string(len);
     memcpy(String_val(s), dst, len);
     redisFreeCommand(dst);
 

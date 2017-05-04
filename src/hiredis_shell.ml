@@ -6,6 +6,7 @@ module Shell = struct
         type t = int
 
         let null = Unix.openfile "/dev/null" [Unix.O_RDWR] 0o0655
+
         let write_config ?temp_dir cf =
             let name, oc = Filename.open_temp_file ?temp_dir "redis" ".conf" in
             List.iter (fun (name, args) ->
