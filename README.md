@@ -9,7 +9,7 @@ Hiredis bindings for OCaml.
 
 ## Installation
 
-    opam pin add hiredis .
+    opam install hiredis
 
 ## Documentation
 
