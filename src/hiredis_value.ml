@@ -28,6 +28,7 @@ module Value = struct
         | _ -> false
 
     let to_string = function
+        | Nil -> ""
         | String s -> s
         | Error s -> s
         | Integer i -> Int64.to_string i

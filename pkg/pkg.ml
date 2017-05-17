@@ -23,4 +23,5 @@ let () =
             Pkg.lib "src/hiredis/win32.h";
             Pkg.clib "src/libhiredis_stubs.clib";
             Pkg.mllib ~api:["Hiredis"] "src/hiredis.mllib";
+            Pkg.test ~dir:"test" "test/hiredis_test";
         ]

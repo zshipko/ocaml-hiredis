@@ -15,6 +15,13 @@ depends: [
     "conduit.lwt-unix" {>= "0.15"}
 ]
 
+build-test: [
+    ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "true"]
+    ["ocaml" "pkg/pkg.ml" "test"]
+]
+
 build: [[
     "ocaml" "./pkg/pkg.ml" "build" "--pinned" "%{pinned}%"
 ]]
+
+
