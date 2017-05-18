@@ -12,7 +12,8 @@ depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "conduit.lwt-unix" {>= "0.15"}
+    "lwt" {>= "2.7.0" }
+    "conduit" {>= "0.15.0"}
 ]
 
 build-test: [
@@ -24,4 +25,4 @@ build: [[
     "ocaml" "./pkg/pkg.ml" "build" "--pinned" "%{pinned}%"
 ]]
 
-
+available: [ ocaml-version >= "4.03.0" ]
