@@ -22,6 +22,8 @@ let test_client t =
         let _ = Test.check t "Client response" (fun () -> res) (Hiredis.Status "OK") in
         let res = Hiredis.Client.run client [| "GET"; "a" |] in
         let _ = Test.check t "Client response2" (fun () -> res) (Hiredis.String "123") in
+        let res = Hiredis.Client.run client [| "xxxx" |] in
+        let _ = Test.check t "Client error response" (fun () -> res) (Hiredis.Error "ERR unknown command 'xxxx'") in
         let _ = Hiredis.Shell.Server.stop server in ()
 
 let _ =
