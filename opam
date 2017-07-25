@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version: "0.3"
+version: "0.4"
 maintainer: "Zach Shipko <zachshipko@gmail.com>"
 authors: ["Zach Shipko"]
 license: "ISC"
@@ -12,8 +12,7 @@ depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "lwt" {>= "2.7.0" }
-    "conduit" {>= "0.15.0"}
+    "conduit-lwt-unix" {>= "1.0.0"}
 ]
 
 build-test: [

@@ -1,7 +1,7 @@
 description = "Hiredis for OCaml"
 version= "%%VERSION_NUM%%"
 
-requires = "conduit.lwt-unix"
+requires = "conduit-lwt-unix"
 archive(byte) = "hiredis.cma"
 archive(native) = "hiredis.cmxa"
 plugin(byte) = "hiredis.cma"
