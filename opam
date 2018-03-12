@@ -12,7 +12,7 @@ depends: [
     "ocamlfind" {build}
     "ocamlbuild" {build}
     "topkg" {build}
-    "conduit-lwt-unix" {>= "1.0.0"}
+    "lwt" {>= 3.3.0}
 ]
 
 build-test: [

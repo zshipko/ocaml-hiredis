@@ -2,9 +2,6 @@ open Ocamlbuild_plugin
 
 let () = dispatch begin function
     | After_rules ->
-      (*dep ["c"; "compile"; "use_hiredis_headers"] ["src/ocaml_hiredis.h"];*)
-
-
     flag ["use_hiredis_stubs"] &
         S[A"-I"; A"src"];
 

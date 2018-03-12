@@ -1,4 +1,4 @@
-true: bin_annot, safe_string, package(conduit-lwt-unix)
+true: bin_annot, safe_string, package(lwt unix)
 
 "src": include
 
