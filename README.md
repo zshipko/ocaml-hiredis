@@ -5,7 +5,6 @@ Hiredis bindings for OCaml.
 ## Dependencies
 
 - Lwt
-- Conduit
 
 ## Installation
 
