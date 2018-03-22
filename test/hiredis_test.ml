@@ -1,8 +1,17 @@
 let test_reader  t =
     let r = Hiredis.Reader.create () in
+    let _ = Hiredis.Reader.feed r "dfgdfgdfg" in
+    let res = Hiredis.Reader.get_reply r in
+    let _ = Test.check t "Reader Get reply (invalid)" (fun () -> res) None in
+
+    let r = Hiredis.Reader.create () in
     let _ = Hiredis.Reader.feed r "$4\r\ntest\r\n" in
     let res = Hiredis.Reader.get_reply r in
     let _ = Test.check t "Reader Get reply (test)" (fun () -> res) (Some (Hiredis.String "test")) in
+
+    let _ = Hiredis.Reader.feed r "*-1\r\n" in
+    let res = Hiredis.Reader.get_reply r in
+    let _ = Test.check t "Reader Get reply (nil)" (fun () -> res) (Some Hiredis.Nil) in
 
     let _ = Hiredis.Reader.feed r "*2\r\n" in
     let _ = Hiredis.Reader.feed r "$4\r\ntest\r\n" in

@@ -27,13 +27,15 @@ value ERR(char *s) {
     return dst;
 }
 
-value convert_reply(redisReply *reply, int consume){
+value convert_reply(redisReply *reply, int consume, int *valid){
     value dst = Val_unit;
 
     if (!reply){
-        return Nil;
+        *valid = 0;
+        return dst;
     }
 
+    *valid = 1;
     if (reply->type == REDIS_REPLY_ERROR){
         dst = caml_alloc_small(1, 0);
         value s = caml_alloc_string(reply->len);
@@ -45,20 +47,29 @@ value convert_reply(redisReply *reply, int consume){
         memcpy(String_val(s), reply->str, reply->len);
         Store_field(dst, 0, s);
     } else if (reply->type == REDIS_REPLY_STRING){
-        dst = caml_alloc_small(1, 2);
-        value s = caml_alloc_string(reply->len);
-        memcpy(String_val(s), reply->str, reply->len);
-        Store_field(dst, 0, s);
+        if (reply-> len < 0){
+            dst = Nil;
+        } else {
+            dst = caml_alloc_small(1, 2);
+            value s = caml_alloc_string(reply->len);
+            memcpy(String_val(s), reply->str, reply->len);
+            Store_field(dst, 0, s);
+        }
     } else if (reply->type == REDIS_REPLY_INTEGER){
         dst = caml_alloc_small(1, 1);
         Store_field(dst, 0, caml_copy_int64(reply->integer));
     } else if (reply->type == REDIS_REPLY_ARRAY){
-        dst = caml_alloc_small(1, 3);
-        value s = caml_alloc(reply->elements, 0);
-        for(size_t i = 0; i < reply->elements; i++){
-            Store_field(s, i, convert_reply(reply->element[i], 0));
+        if (reply->elements < 0){
+            dst = Nil;
+        } else {
+            dst = caml_alloc_small(1, 3);
+            value s = caml_alloc(reply->elements, 0);
+            for(size_t i = 0; i < reply->elements; i++){
+                Store_field(s, i, convert_reply(reply->element[i], 0, valid));
+                if (!valid) break;
+            }
+            Store_field(dst, 0, s);
         }
-        Store_field(dst, 0, s);
     } else {
         dst = Nil;
     }
@@ -119,7 +130,9 @@ value redis_context_get_reply(value _ctx){
         CAMLreturn(None);
     }
 
-    CAMLreturn(Some(convert_reply(reply, 1)));
+    int valid;
+    value response = convert_reply(reply, 1, &valid);
+    CAMLreturn(valid ? Some(response) : None);
 }
 
 value redis_context_connect(value host, value port, value nonblock){
@@ -206,7 +219,9 @@ value redis_context_command(value _ctx, value arr){
     redisReply *reply = redisCommandArgv(ctx, argc, argv, lens);
     caml_acquire_runtime_system();
 
-    CAMLreturn (convert_reply(reply, 1));
+    int valid;
+    value response = convert_reply(reply, 1, &valid);
+    CAMLreturn (valid ? response : Nil);
 }
 
 value redis_context_append_command(value _ctx, value arr){
@@ -346,8 +361,9 @@ value redis_reader_get_reply(value _reader){
         CAMLreturn(None);
     }
     caml_acquire_runtime_system();
-
-    CAMLreturn(Some(convert_reply(reply, 1)));
+    int valid;
+    value response = convert_reply(reply, 1, &valid);
+    CAMLreturn(valid ? Some(response) : None);
 }
 
 

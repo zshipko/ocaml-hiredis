@@ -35,6 +35,8 @@ type status =
 
 val command : string array -> string option
 val command_v : value array -> string option
+val encode_string : value -> string
+val decode_string : string -> value option
 
 module Reader : sig
     type t
@@ -42,9 +44,6 @@ module Reader : sig
     val release : t -> unit
     val feed : t -> string -> status
     val get_reply : t -> Value.t option
-
-    val encode_string : value -> string
-    val decode_string : string -> value option
 end
 
 module Client : sig

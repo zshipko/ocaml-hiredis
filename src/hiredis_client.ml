@@ -21,35 +21,35 @@ module Reader = struct
 
     let feed r s = C.redis_reader_feed r.r_handle s
     let get_reply r = C.redis_reader_get_reply r.r_handle
-
-    let rec encode_string = function
-        | Nil -> "*-1\r\n"
-        | Error e ->
-            if String.contains e '\n'
-            then raise Value.Invalid_value
-            else Printf.sprintf "-%s\r\n" e
-        | Integer i ->
-            Printf.sprintf ":%Ld\r\n" i
-        | String s ->
-            Printf.sprintf "$%d\r\n%s\r\n" (String.length s) s
-        | Array arr ->
-            let l = Array.map encode_string arr
-                |> Array.to_list
-                |> String.concat "" in
-            Printf.sprintf "*%d\r\n%s" (Array.length arr) l
-        | Status s ->
-            if String.contains s '\n'
-            then raise Value.Invalid_value
-            else Printf.sprintf "+%s\r\n" s
-
-    let decode_string s =
-        let r = create () in
-        match feed r s with
-        | OK -> get_reply r
-        | ERR s -> failwith (match s with
-            | Some s -> s
-            | None -> "invalid encoding")
 end
+
+let rec encode_string = function
+    | Nil -> "*-1\r\n"
+    | Error e ->
+        if String.contains e '\n'
+        then raise Value.Invalid_value
+        else Printf.sprintf "-%s\r\n" e
+    | Integer i ->
+        Printf.sprintf ":%Ld\r\n" i
+    | String s ->
+        Printf.sprintf "$%d\r\n%s\r\n" (String.length s) s
+    | Array arr ->
+        let l = Array.map encode_string arr
+            |> Array.to_list
+            |> String.concat "" in
+        Printf.sprintf "*%d\r\n%s" (Array.length arr) l
+    | Status s ->
+        if String.contains s '\n'
+        then raise Value.Invalid_value
+        else Printf.sprintf "+%s\r\n" s
+
+let decode_string s =
+    let r = Reader.create () in
+    match Reader.feed r s with
+    | OK -> Reader.get_reply r
+    | ERR s -> failwith (match s with
+        | Some s -> s
+        | None -> "invalid encoding")
 
 module Client = struct
     type t = {
@@ -98,7 +98,7 @@ module Client = struct
         C.redis_context_append_formatted ctx.c_handle s
 
     let append_value ctx v =
-        append_formatted ctx (Reader.encode_string v)
+        append_formatted ctx (encode_string v)
 
     let flush_buffer ctx =
         C.redis_context_flush_buffer ctx.c_handle
