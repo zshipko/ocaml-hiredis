@@ -21,7 +21,8 @@ let test_reader  t =
     in ()
 
 let test_client t =
-    let server = Hiredis.Shell.Server.start 1234 in
+    let config = ["port", ["1234"]; "daemonize", ["no"]] in
+    let server = Hiredis.Shell.Server.start ~config 1234 in
     let () = print_endline "Starting redis server" in
     let _ = Unix.sleep 1 in
     let client = Hiredis.Client.connect ~port:1234 "127.0.0.1" in

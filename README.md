@@ -4,6 +4,7 @@ Hiredis bindings for OCaml.
 
 ## Dependencies
 
+- Topkg (build)
 - Lwt
 
 ## Installation
@@ -12,4 +13,4 @@ Hiredis bindings for OCaml.
 
 ## Documentation
 
-See `src/hiredis.mli`
+See [src/hiredis.mli](https://github.com/zshipko/ocaml-hiredis/blob/master/src/hiredis.mli)
