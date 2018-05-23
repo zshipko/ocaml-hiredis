@@ -15,7 +15,8 @@ module Shell = struct
                 output_string oc (String.concat " " (List.map (fun x ->
                     if String.contains x ' ' then
                         "\"" ^ x ^ "\""
-                    else x) args))) cf;
+                    else x) args));
+                output_char oc '\n') cf;
             close_out oc; name
 
         let start ?temp_dir ?config:(config=[]) port =
