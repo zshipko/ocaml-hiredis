@@ -123,9 +123,13 @@ module Client : sig
     (** Enable keepalive on the client *)
     val enable_keepalive : t -> status
 
-    (* Queue commands to be executed *)
+    (** Queue command to be executed *)
     val append_command : t -> string array -> status
+
+    (** Similar to [append_command] but using a command made of Hiredis values *)
     val append_command_v : t -> value array -> status
+
+    (** Append a pre-formatted command string to be executed *)
     val append_formatted : t -> string -> status
     val append_value : t -> value -> status
 
