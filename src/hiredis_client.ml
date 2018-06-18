@@ -27,7 +27,7 @@ let rec encode_string = function
     | Nil -> "*-1\r\n"
     | Error e ->
         if String.contains e '\n'
-        then raise Value.Invalid_value
+        then raise Invalid_value
         else Printf.sprintf "-%s\r\n" e
     | Integer i ->
         Printf.sprintf ":%Ld\r\n" i
@@ -40,7 +40,7 @@ let rec encode_string = function
         Printf.sprintf "*%d\r\n%s" (Array.length arr) l
     | Status s ->
         if String.contains s '\n'
-        then raise Value.Invalid_value
+        then raise Invalid_value
         else Printf.sprintf "+%s\r\n" s
 
 let decode_string s =
@@ -92,7 +92,7 @@ module Client = struct
         C.redis_context_append_command ctx.c_handle arr
 
     let append_command_v ctx arr =
-        C.redis_context_append_command ctx.c_handle (Array.map Value.to_string arr)
+        C.redis_context_append_command ctx.c_handle (Array.map to_string arr)
 
     let append_formatted ctx s =
         C.redis_context_append_formatted ctx.c_handle s
@@ -113,7 +113,7 @@ module Client = struct
         C.redis_context_command ctx.c_handle arr
 
     let run_v ctx arr =
-        run ctx (Array.map Value.to_string arr)
+        run ctx (Array.map to_string arr)
 
     let connect ?scripts:(scripts=Hashtbl.create 16) ?auth ?nonblock:(nonblock=false) ?port host =
         let ctx = {
@@ -131,7 +131,7 @@ module Client = struct
         | None -> ctx
 
     let load_script ctx name s =
-        let hash = Value.to_string (run ctx [| "SCRIPT"; "LOAD"; s |]) in
+        let hash = to_string (run ctx [| "SCRIPT"; "LOAD"; s |]) in
         Hashtbl.replace ctx.c_scripts name hash
 
     let call_script ctx name numkeys args =

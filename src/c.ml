@@ -1,10 +1,4 @@
-type t =
-    | Nil
-    | Error of string
-    | Integer of int64
-    | String of string
-    | Array of t array
-    | Status of string
+type t = Hiredis_value.t
 
 type status =
     | OK

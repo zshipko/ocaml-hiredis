@@ -9,19 +9,14 @@ dev-repo: "https://github.com/zshipko/ocaml-hiredis.git"
 doc: "https://github.com/zshipko/ocaml-hiredis"
 
 depends: [
-    "ocamlfind" {build}
-    "ocamlbuild" {build}
-    "topkg" {build}
-    "lwt" {>= "3.3.0"}
+    "jbuilder" {build}
 ]
 
 build-test: [
-    ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "true"]
-    ["ocaml" "pkg/pkg.ml" "test"]
 ]
 
-build: [[
-    "ocaml" "./pkg/pkg.ml" "build" "--pinned" "%{pinned}%"
-]]
+build: [
+    ["jbuilder" "build" "-p" name]
+]
 
 available: [ ocaml-version >= "4.03.0" ]

@@ -1,68 +1,7 @@
 (** Hiredis is an OCaml wrapper around the [hiredis] C library *)
 
-(** The [value] type is used to encode values to communicate with Redis *)
-type value =
-    | Nil
-    | Error of string
-    | Integer of int64
-    | String of string
-    | Array of value array
-    | Status of string
-
-module Value : sig
-    type t = value
-
-    (** Get a nil value *)
-    val nil : t
-
-    (** Convert an OCaml string to a Hiredis string *)
-    val string : string -> t
-
-    (** Convert an int64 to Hiredis number *)
-    val int64 : int64 -> t
-
-    (** Convert an int to Hiredis number *)
-    val int : int -> t
-
-    (** Convert an OCaml array to Hiredis array *)
-    val array : t array -> t
-
-    (** Create an error value *)
-    val error : string -> t
-
-    (** Create a status or "simple string" value *)
-    val status : string -> t
-
-    exception Invalid_value
-
-    val is_nil : t -> bool
-    val is_error : t -> bool
-
-    (** [to_string v] converts [v] to a string, otherwise [Invalid_value] is raised *)
-    val to_string : t -> string
-
-    (** [to_int64 v] converts [v] to an int64, otherwise [Invalid_value] is raised *)
-    val to_int64 : t -> int64
-
-    (** [to_int v] converts [v] to an int, otherwise [Invalid_value] is raised *)
-    val to_int : t -> int
-
-    (** [to_float v] converts [v] to a float, otherwise [Invalid_value] is raised *)
-    val to_float : t -> float
-
-    (** [to_array v] converts [v] to an array of values if [v] is an array value,
-     *  otherwise [Invalid_value] is raised *)
-    val to_array : t -> t array
-
-    (** [to_list v] converts [v] to a list of values if [v] is an array value,
-     *  otherwise [Invalid_value] is raised *)
-    val to_list : t -> t list
-
-    (** [to_hashtbl v] converts [v] to a Hashtbl.t if [v] is an array value and
-     *  the array can be interpreted as a hash table, otherwise [Invalid_value] is
-     *  raised*)
-    val to_hashtbl : t -> (string, t) Hashtbl.t
-end
+(** The [Value.t] type is used to encode Value.ts to communicate with Redis *)
+module Value = Hiredis_value
 
 type status =
     | OK
@@ -71,16 +10,16 @@ type status =
 (** Create a command from an array of strings *)
 val command : string array -> string option
 
-(** Create a command from an array of values *)
-val command_v : value array -> string option
+(** Create a command from an array of Value.ts *)
+val command_v : Value.t array -> string option
 
-(** Encode value to string *)
-val encode_string : value -> string
+(** Encode Value.t to string *)
+val encode_string : Value.t -> string
 
-(** Decode value from string *)
-val decode_string : string -> value option
+(** Decode Value.t from string *)
+val decode_string : string -> Value.t option
 
-(** Readers are used to decode Redis values from buffered input *)
+(** Readers are used to decode Redis Value.ts from buffered input *)
 module Reader : sig
     type t
 
@@ -126,35 +65,35 @@ module Client : sig
     (** Queue command to be executed *)
     val append_command : t -> string array -> status
 
-    (** Similar to [append_command] but using a command made of Hiredis values *)
-    val append_command_v : t -> value array -> status
+    (** Similar to [append_command] but using a command made of Hiredis Value.ts *)
+    val append_command_v : t -> Value.t array -> status
 
     (** Append a pre-formatted command string to be executed *)
     val append_formatted : t -> string -> status
-    val append_value : t -> value -> status
+    val append_value : t -> Value.t -> status
 
     (* Write queued commands *)
     val flush_buffer : t -> status
     val read_buffer : t -> status
 
     (** [get_reply client] executes the queued commands and returns the result *)
-    val get_reply : t -> value option
+    val get_reply : t -> Value.t option
 
     (** Execute a command formatted as an array of strings and return the reply immediately *)
-    val run : t -> string array -> value
+    val run : t -> string array -> Value.t
 
-    (** Execute a command formatted as an array of values and return the reply immediately *)
-    val run_v : t -> value array -> value
+    (** Execute a command formatted as an array of Value.ts and return the reply immediately *)
+    val run_v : t -> Value.t array -> Value.t
 
     (** [load_script name script] will load a lua script onto the server and make it available from the existing
      *  client as [name]*)
     val load_script : t -> string -> string -> unit
 
     (** [call_script client name nkeys args] calls a script by name with the given number of keys and arguments *)
-    val call_script : t -> string -> int -> string list -> value
+    val call_script : t -> string -> int -> string list -> Value.t
 
-    (** Similar to [call_script] but with a list of values for arguments *)
-    val call_script_v : t -> string -> int -> value list -> value
+    (** Similar to [call_script] but with a list of Value.ts for arguments *)
+    val call_script_v : t -> string -> int -> Value.t list -> Value.t
 end
 
 (** A pool is used to access one server using many clients *)

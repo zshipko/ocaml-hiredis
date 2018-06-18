@@ -1,8 +1,0 @@
-true: bin_annot, safe_string, package(lwt unix)
-
-"src": include
-
-<src/*.{cma,cmxa,cmxs}>: use_hiredis_stubs
-<src/*.cma>: custom, link_hiredis_stubs
-
-<test/*.native>: link_hiredis_stubs

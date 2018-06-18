@@ -1,9 +1,0 @@
-description = "Hiredis for OCaml"
-version= "%%VERSION_NUM%%"
-
-requires = "lwt"
-archive(byte) = "hiredis.cma"
-archive(native) = "hiredis.cmxa"
-plugin(byte) = "hiredis.cma"
-plugin(native) = "hiredis.cmxs"
-
