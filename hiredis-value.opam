@@ -12,9 +12,6 @@ depends: [
     "jbuilder" {build}
 ]
 
-build-test: [
-]
-
 build: [
     ["jbuilder" "build" "-p" name]
 ]

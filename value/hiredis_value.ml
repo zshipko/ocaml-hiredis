@@ -41,7 +41,7 @@ let to_int64 = function
         end
 
 let to_int x = to_int64 x |> Int64.to_int
-let to_float x = to_int64 x |> Int64.to_float
+let to_float x = to_string x |> float_of_string
 
 let to_array = function
     | Array a -> a
@@ -54,15 +54,14 @@ let to_list = function
 let to_hashtbl a =
     let a = to_array a in
     let len = Array.length a in
-    let key = ref None in
+    let key = ref "" in
     let _ = if len mod 2 <> 0 then raise Invalid_value in
     let dst = Hashtbl.create (len/2) in
-    let _ = Array.iteri (fun n item ->
+    let _ =
+      Array.iteri (fun n item ->
         if n mod 2 = 0 then
-            key := Some (to_string item)
-        else match !key with
-        | Some k ->
-            Hashtbl.replace dst k item;
-            key := None
-        | None -> ()) a
+            key := to_string item
+        else
+          Hashtbl.replace dst !key item;
+      ) a
     in dst
