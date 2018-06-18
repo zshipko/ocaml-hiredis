@@ -1,4 +1,8 @@
-### (2018-3-21)
+### 0.8
+
+* Split out `Hiredis_value`
+
+### 0.7 (2018-3-21)
 
 * Fixed response from `get_reply`
 * Cleaned up Reader API
